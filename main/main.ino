@@ -1,7 +1,7 @@
 struct Vector {
   double x, y, z;
 
-  Vector(const double&_x, const double&_y, const double&_z)
+  Vector(const double& _x, const double& _y, const double& _z)
     : x(_x), y(_y), z(_z) {}
 };
 
