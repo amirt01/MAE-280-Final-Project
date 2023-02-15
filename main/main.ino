@@ -16,12 +16,8 @@ struct Motor {
   Motor(Vector pos, Vector mag) : pos(pos), mag(mag) {}
 };
 
-Vector Moment(const Motor& m) {
-  return {m.pos.y * m.mag.z - m.pos.z * m.mag.y,
-          -(m.pos.x * m.mag.z - m.pos.z * m.mag.x),
-          m.pos.x * m.mag.y - m.pos.y * m.mag.x};
-}
-
+Vector Moment(const Motor&);
+  
 const int N_MOTORS = 6;
 Motor Motors[N_MOTORS] = {
   {},
@@ -40,4 +36,10 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
+}
+
+Vector Moment(const Motor& m) {
+  return {m.pos.y * m.mag.z - m.pos.z * m.mag.y,
+          -(m.pos.x * m.mag.z - m.pos.z * m.mag.x),
+          m.pos.x * m.mag.y - m.pos.y * m.mag.x};
 }
