@@ -6,15 +6,21 @@ struct Vector {
 };
 
 struct Motor {
-  Vector position;
-  Vector magnitude;
+  Vector pos;
+  Vector mag;
 
   Motor(const double& pos_x = 0, const double& pos_y = 0, const double& poz_z = 0,
         const double& mag_x = 0, const double& mag_y = 0, const double& mag_z = 0)
-    : position(pos_x, pos_y, poz_z), magnitude(mag_x, mag_y, mag_z) {}
+    : pos(pos_x, pos_y, poz_z), mag(mag_x, mag_y, mag_z) {}
 
-  Motor(Vector pos, Vector mag) : position(pos), magnitude(mag) {}
+  Motor(Vector pos, Vector mag) : pos(pos), mag(mag) {}
 };
+
+Vector Moment(const Motor& m) {
+  return {m.pos.y * m.mag.z - m.pos.z * m.mag.y,
+          -(m.pos.x * m.mag.z - m.pos.z * m.mag.x),
+          m.pos.x * m.mag.y - m.pos.y * m.mag.x};
+}
 
 const int N_MOTORS = 6;
 Motor Motors[N_MOTORS] = {
