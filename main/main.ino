@@ -22,10 +22,8 @@ struct Motor {
 
 Vector Moment(const Motor&);
 
-const int N_MOTORS = 6;
+const int N_MOTORS = 4;
 Motor Motors[N_MOTORS] = {
-  {},
-  {},
   {},
   {},
   {},
@@ -39,6 +37,10 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  // take in data
+  // process data
+  // update motors
 
 }
 
