@@ -1,3 +1,5 @@
+#include <Servo.h>
+
 struct Vector {
   double x, y, z;
 
@@ -13,15 +15,15 @@ struct Motor {
   Vector pos;
   Vector dir;
   double mag;
-  const int pin;
+  Servo controller;
 
   Motor(const double& pos_x = 0, const double& pos_y = 0, const double& poz_z = 0,
         const double& dir_x = 0, const double& dir_y = 0, const double& dir_z = 0,
         const double& _mag = 0, const int& _pin = 0)
-    : pos(pos_x, pos_y, poz_z), dir(dir_x, dir_y, dir_z), mag(_mag), pin(_pin) {}
+    : pos(pos_x, pos_y, poz_z), dir(dir_x, dir_y, dir_z), mag(_mag) {}
 
   Motor(const Vector& _pos, const Vector& _dir, const double& _mag, const int& _pin)
-    : pos(_pos), dir(_dir), mag(_mag), pin(_pin) {}
+    : pos(_pos), dir(_dir), mag(_mag) {}
 };
 
 Vector Moment(const Motor&);
@@ -53,7 +55,7 @@ void loop() {
   // process data
   UpdateMotors();
 
-  for (const Motor& motor : motors) { analogWrite(motor.pin, motor.mag); }
+  for (const Motor& motor : motors) { motor.controller.write(motor.mag); }
 }
 
 Vector Moment(const Motor& m) {
