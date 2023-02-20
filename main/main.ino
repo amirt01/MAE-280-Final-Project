@@ -1,5 +1,7 @@
 #include <Servo.h>
 
+const int PWM_PINS[] = {3, 5, 6, 9, 10, 11};
+
 struct Vector {
   double x, y, z;
 
@@ -12,17 +14,19 @@ struct Vector {
 };
 
 struct Motor {
-  Vector pos;
-  Vector dir;
-  double mag;
+  Vector pos = {0, 0, 0};
+  Vector dir = {0, 0, 0};
+  double mag = 0;
   Servo controller;
 
-  Motor(const double& pos_x = 0, const double& pos_y = 0, const double& poz_z = 0,
-        const double& dir_x = 0, const double& dir_y = 0, const double& dir_z = 0,
-        const double& _mag = 0, const int& _pin = 0)
+  Motor() = default;
+
+  Motor(const double& pos_x, const double& pos_y, const double& poz_z,
+        const double& dir_x, const double& dir_y, const double& dir_z,
+        const double& _mag)
     : pos(pos_x, pos_y, poz_z), dir(dir_x, dir_y, dir_z), mag(_mag) {}
 
-  Motor(const Vector& _pos, const Vector& _dir, const double& _mag, const int& _pin)
+  Motor(const Vector& _pos, const Vector& _dir, const double& _mag)
     : pos(_pos), dir(_dir), mag(_mag) {}
 };
 
@@ -44,8 +48,7 @@ Vector target_direction(0, 0, 0);
 Vector true_direction(0, 0, 0);
 
 void setup() {
-  // put your setup code here, to run once:
-
+  for(int i = 0; i < N_MOTORS; i++) { motors[i].controller.attach(PWM_PINS[i]); }
 }
 
 void loop() {
