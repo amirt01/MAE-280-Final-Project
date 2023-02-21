@@ -71,15 +71,24 @@ Vector Moment(const Motor& m) {
 void UpdateMotors() {
   Vector accel_direction = target_direction - true_direction;
   
-  if (accel_direction.x > 0) {}
-  else if (accel_direction.x < 0) {}
-  else {}
+  if (accel_direction.x > 0) {       // yaw right
+  }
+  else if (accel_direction.x < 0) {  // yaw left
+  }
+  else {                             // go forward
+  }
 
-  if (accel_direction.y > 0) {}
-  else if (accel_direction.y < 0) {}
-  else {}
+  if (accel_direction.y > 0) {       // yaw right and go forward
+  }
+  else if (accel_direction.y < 0) {  // yaw left and go forward
+  }
+  else {                             // go forward
+  }
   
-  if (accel_direction.z > 0) {}
-  else if (accel_direction.z < 0) {}
-  else {}
+  if (accel_direction.z > 0) {       // go up 
+  }
+  else if (accel_direction.z < 0) {  // go down
+  }
+  else {                             // go forward
+  }
 }
