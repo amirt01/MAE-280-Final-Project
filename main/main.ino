@@ -13,42 +13,28 @@ struct Vector {
   }
 };
 
-struct Motor {
-  Vector pos = {0, 0, 0};
-  Vector dir = {0, 0, 0};
-  double mag = 0;
-  Servo controller;
-
-  Motor() = default;
-
-  Motor(const double& pos_x, const double& pos_y, const double& poz_z,
-        const double& dir_x, const double& dir_y, const double& dir_z,
-        const double& _mag)
-    : pos(pos_x, pos_y, poz_z), dir(dir_x, dir_y, dir_z), mag(_mag) {}
-
-  Motor(const Vector& _pos, const Vector& _dir, const double& _mag)
-    : pos(_pos), dir(_dir), mag(_mag) {}
-};
-
-Vector Moment(const Motor&);
+Vector target_direction(0, 0, 0);
+Vector true_direction(0, 0, 0);
 
 void ReadSensors();  // read accelerometer/gyro and depth
 void UpdateVars();   // calculate and update variables 
 void UpdateMotors(); // write to all the motors
 
-const int N_MOTORS = 4;
-Motor motors[N_MOTORS] = {
-  {},
-  {},
-  {},
-  {}
+struct Motor {
+  double mag;
+  Servo controller;
 };
 
-Vector target_direction(0, 0, 0);
-Vector true_direction(0, 0, 0);
+const int N_MOTORS = 4;
+union motors_u {
+  struct motors_s {
+    Motor forward, aft, left, right;
+  };
+  Motor motors_a[N_MOTORS];
+} motors;
 
 void setup() {
-  for(int i = 0; i < N_MOTORS; i++) { motors[i].controller.attach(PWM_PINS[i]); }
+  for(int i = 0; i < N_MOTORS; i++) { motors.motors_a[i].controller.attach(PWM_PINS[i]); }
 }
 
 void loop() {
@@ -58,14 +44,7 @@ void loop() {
   // process data
   UpdateMotors();
 
-  for (const Motor& motor : motors) { motor.controller.write(motor.mag); }
-}
-
-Vector Moment(const Motor& m) {
-  // TODO: multiply by mag somehow
-  return {m.pos.y * m.dir.z - m.pos.z * m.dir.y,
-          -(m.pos.x * m.dir.z - m.pos.z * m.dir.x),
-          m.pos.x * m.dir.y - m.pos.y * m.dir.x};
+  for (const Motor& motor : motors.motors_a) { motor.controller.write(motor.mag); }
 }
 
 void UpdateMotors() {
