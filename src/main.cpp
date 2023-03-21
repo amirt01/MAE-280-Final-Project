@@ -11,10 +11,22 @@
 // ===                     Sensor VARIABLES                     ===
 // ================================================================
 
-Adafruit_MPU6050 mpu;
 Adafruit_LPS35HW lps = Adafruit_LPS35HW();
+float lps_temp = 0;
+float pressure = 0;
+
+Adafruit_MPU6050 mpu;
+float mpu_temp = 0;
+float accel_x = 0;
+float accel_y = 0;
+float accel_z = 0;
+float gyro_x = 0;
+float gyro_y = 0;
+float gyro_z = 0;
 
 Pixy2 pixy;
+uint16_t target_x = 0;
+uint16_t target_y = 0;
 
 // ================================================================
 // ===                     Motor VARIABLES                      ===
@@ -59,6 +71,9 @@ void Operations_Setup();
 void Get_LPS_Data();
 void Get_MPU_Data();
 void Get_Pixy_Data();
+
+void Calclate_Acceleration_Vector();
+
 void Update_Blink();
 
 // ================================================================
@@ -90,6 +105,8 @@ void loop() {
   Get_MPU_Data();
   Get_Pixy_Data();
   
+  Calculate_Acceleration_Vector();
+
   Update_Blink();
 }
 
@@ -162,27 +179,37 @@ void Get_MPU_Data() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
+  accel_x = a.acceleration.x;
+  accel_y = a.acceleration.x;
+  accel_z = a.acceleration.x;
+  
+  gyro_x = g.gyro.x;
+  gyro_y = g.gyro.x;
+  gyro_z = g.gyro.x;
+  
+  mpu_temp = temp.temperature;
+
   /* Print out the values */
   Serial.print("Acceleration X: ");
-  Serial.print(a.acceleration.x);
+  Serial.print(accel_x);
   Serial.print(", Y: ");
-  Serial.print(a.acceleration.y);
+  Serial.print(accel_y);
   Serial.print(", Z: ");
-  Serial.print(a.acceleration.z);
+  Serial.print(accel_z);
   Serial.println(" m/s^2");
 
   Serial.print("Rotation X: ");
-  Serial.print(g.gyro.x);
+  Serial.print(gyro_x);
   Serial.print(", Y: ");
-  Serial.print(g.gyro.y);
+  Serial.print(gyro_y);
   Serial.print(", Z: ");
-  Serial.print(g.gyro.z);
+  Serial.print(gyro_z);
   Serial.println(" rad/s");
 
   /* The temperature that is measured here is usually the temperature
   in the sensor which is used for calibration purposes.*/
   Serial.print("Temperature: ");
-  Serial.print(temp.temperature);
+  Serial.print(mpu_temp);
   Serial.println(" degC");
 }
 
@@ -217,6 +244,10 @@ void Get_Pixy_Data() {
     Serial.println("EYOOOOOOOOOO");
     Serial.print("Detected ");
     Serial.println(pixy.ccc.numBlocks);
+
+    target_x = pixy.ccc.blocks[0].m_x;
+    target_y = pixy.ccc.blocks[0].m_y;
+    
     for (i = 0; i < pixy.ccc.numBlocks; i++) {
       //      Serial.print("  block ");
       //    Serial.print(i);
@@ -242,6 +273,10 @@ void Get_Pixy_Data() {
   esc3.write(NEUTRAL);
   esc4.write(NEUTRAL);
   //delay(del);
+}
+
+void Calculate_Acceleration_Vector() {
+
 }
 
 // Blink every second
