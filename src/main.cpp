@@ -59,6 +59,7 @@ void Operations_Setup();
 void Update_Blink();
 void Get_LPS_Data();
 void Get_MPU_Data();
+void Get_Pixy_Data();
 
 // ================================================================
 // ===                          SETUP                           ===
@@ -87,63 +88,7 @@ void setup() {
 void loop() {
   Get_LPS_Data();
   Get_MPU_Data();
-
-  Serial.println("");
-  /* esc1.write(test);
-  delay(del);
-  esc1.write(90);
-  delay(del);
-
-
-  esc2.write(test);
-  delay(del);
-  esc2.write(90);
-  delay(del);
-
-  esc3.write(test);
-  delay(del);
-  esc3.write(90);
-  delay(del);
-
-  esc4.write(test);
-  delay(del);
-  esc4.write(90);
-  delay(del); */
-
-  int i;
-  // grab blocks!
-  pixy.ccc.getBlocks();
-
-  // If there are detect blocks, print them!
-  if (pixy.ccc.numBlocks) {
-    Serial.println("EYOOOOOOOOOO");
-    Serial.print("Detected ");
-    Serial.println(pixy.ccc.numBlocks);
-    for (i = 0; i < pixy.ccc.numBlocks; i++) {
-      //      Serial.print("  block ");
-      //    Serial.print(i);
-      //  Serial.print(": ");
-      Serial.println(pixy.ccc.blocks[i].m_x);
-      esc1.write(100);
-      esc2.write(100);
-      esc3.write(110);
-      esc4.write(100);
-      delay(300);
-    }
-  }
-
-  /* esc1.write(test);
-  esc2.write(test);
-  esc3.write(test);
-  esc4.write(test);
-  delay(del);
-  */
-
-  esc1.write(NEUTRAL);
-  esc2.write(NEUTRAL);
-  esc3.write(NEUTRAL);
-  esc4.write(NEUTRAL);
-  //delay(del);
+  Get_Pixy_Data();
   
   Update_Blink();
 }
@@ -250,4 +195,62 @@ void Get_MPU_Data() {
   Serial.print("Temperature: ");
   Serial.print(temp.temperature);
   Serial.println(" degC");
+}
+
+void Get_Pixy_Data() {
+  /* esc1.write(test);
+  delay(del);
+  esc1.write(90);
+  delay(del);
+
+
+  esc2.write(test);
+  delay(del);
+  esc2.write(90);
+  delay(del);
+
+  esc3.write(test);
+  delay(del);
+  esc3.write(90);
+  delay(del);
+
+  esc4.write(test);
+  delay(del);
+  esc4.write(90);
+  delay(del); */
+
+  int i;
+  // grab blocks!
+  pixy.ccc.getBlocks();
+
+  // If there are detect blocks, print them!
+  if (pixy.ccc.numBlocks) {
+    Serial.println("EYOOOOOOOOOO");
+    Serial.print("Detected ");
+    Serial.println(pixy.ccc.numBlocks);
+    for (i = 0; i < pixy.ccc.numBlocks; i++) {
+      //      Serial.print("  block ");
+      //    Serial.print(i);
+      //  Serial.print(": ");
+      Serial.println(pixy.ccc.blocks[i].m_x);
+      esc1.write(100);
+      esc2.write(100);
+      esc3.write(110);
+      esc4.write(100);
+      delay(300);
+    }
+  }
+
+  /* esc1.write(test);
+  esc2.write(test);
+  esc3.write(test);
+  esc4.write(test);
+  delay(del);
+  */
+
+  esc1.write(NEUTRAL);
+  esc2.write(NEUTRAL);
+  esc3.write(NEUTRAL);
+  esc4.write(NEUTRAL);
+  //delay(del);
 }
