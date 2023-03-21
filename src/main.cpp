@@ -27,6 +27,8 @@ float gyro_z = 0;
 Pixy2 pixy;
 uint16_t target_x = 0;
 uint16_t target_y = 0;
+uint16_t target_width = 0;
+uint16_t target_width = 0;
 
 // ================================================================
 // ===                     Motor VARIABLES                      ===
@@ -50,7 +52,7 @@ int test = 95;
 // ===                       OPERATIONS                         ===
 // ================================================================
 
-constexpr unsigned int LAUNCH_DELAY = 3000;
+const unsigned int LAUNCH_DELAY = 3000;
 
 #define LED_PIN 13
 bool blinkState = false;
@@ -73,6 +75,7 @@ void Get_MPU_Data();
 void Get_Pixy_Data();
 
 void Calclate_Acceleration_Vector();
+void Update_Servos();
 
 void Update_Blink();
 
@@ -161,14 +164,17 @@ void Operations_Setup() {
 }
 
 void Get_LPS_Data() {
+  lps_temp = lps.readTemperature();
+  pressure = lps.readPressure();
+
   /* The temperature that is measured here is usually the temperature
   in the sensor which is used for calibration purposes.*/
   Serial.print("Temperature: ");
-  Serial.print(lps.readTemperature());
+  Serial.print(lps_temp);
   Serial.println(" C");
 
   Serial.print("Pressure: ");
-  Serial.print(lps.readPressure());
+  Serial.print(pressure);
   Serial.println(" hPa");
 }
 
@@ -214,28 +220,6 @@ void Get_MPU_Data() {
 }
 
 void Get_Pixy_Data() {
-  /* esc1.write(test);
-  delay(del);
-  esc1.write(90);
-  delay(del);
-
-
-  esc2.write(test);
-  delay(del);
-  esc2.write(90);
-  delay(del);
-
-  esc3.write(test);
-  delay(del);
-  esc3.write(90);
-  delay(del);
-
-  esc4.write(test);
-  delay(del);
-  esc4.write(90);
-  delay(del); */
-
-  int i;
   // grab blocks!
   pixy.ccc.getBlocks();
 
@@ -247,36 +231,11 @@ void Get_Pixy_Data() {
 
     target_x = pixy.ccc.blocks[0].m_x;
     target_y = pixy.ccc.blocks[0].m_y;
-    
-    for (i = 0; i < pixy.ccc.numBlocks; i++) {
-      //      Serial.print("  block ");
-      //    Serial.print(i);
-      //  Serial.print(": ");
-      Serial.println(pixy.ccc.blocks[i].m_x);
-      esc1.write(100);
-      esc2.write(100);
-      esc3.write(110);
-      esc4.write(100);
-      delay(300);
-    }
   }
-
-  /* esc1.write(test);
-  esc2.write(test);
-  esc3.write(test);
-  esc4.write(test);
-  delay(del);
-  */
-
-  esc1.write(NEUTRAL);
-  esc2.write(NEUTRAL);
-  esc3.write(NEUTRAL);
-  esc4.write(NEUTRAL);
-  //delay(del);
 }
 
 void Calculate_Acceleration_Vector() {
-
+  
 }
 
 // Blink every second
