@@ -57,6 +57,8 @@ void Servo_Setup();
 void Operations_Setup();
 
 void Update_Blink();
+void Get_LPS_Data();
+void Get_MPU_Data();
 
 // ================================================================
 // ===                          SETUP                           ===
@@ -83,39 +85,8 @@ void setup() {
 // ================================================================
 
 void loop() {
-  Serial.print("Temperature: ");
-  Serial.print(lps.readTemperature());
-  Serial.println(" C");
-
-  Serial.print("Pressure: ");
-  Serial.print(lps.readPressure());
-  Serial.println(" hPa");
-
-  Serial.println();
-  /* Get new sensor events with the readings */
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
-
-  /* Print out the values */
-  Serial.print("Acceleration X: ");
-  Serial.print(a.acceleration.x);
-  Serial.print(", Y: ");
-  Serial.print(a.acceleration.y);
-  Serial.print(", Z: ");
-  Serial.print(a.acceleration.z);
-  Serial.println(" m/s^2");
-
-  Serial.print("Rotation X: ");
-  Serial.print(g.gyro.x);
-  Serial.print(", Y: ");
-  Serial.print(g.gyro.y);
-  Serial.print(", Z: ");
-  Serial.print(g.gyro.z);
-  Serial.println(" rad/s");
-
-  Serial.print("Temperature: ");
-  Serial.print(temp.temperature);
-  Serial.println(" degC");
+  Get_LPS_Data();
+  Get_MPU_Data();
 
   Serial.println("");
   /* esc1.write(test);
@@ -236,4 +207,47 @@ void Update_Blink() {
   digitalWrite(LED_PIN, blinkState);
 
   toggle_time = millis() + LED_INCREMENT;
+}
+
+void Get_LPS_Data() {
+  /* The temperature that is measured here is usually the temperature
+  in the sensor which is used for calibration purposes.*/
+  Serial.print("Temperature: ");
+  Serial.print(lps.readTemperature());
+  Serial.println(" C");
+
+  Serial.print("Pressure: ");
+  Serial.print(lps.readPressure());
+  Serial.println(" hPa");
+}
+
+void Get_MPU_Data() {
+  // TODO: We most likely only need data from the gyroscope so we can
+  //       par this down a lot.
+  /* Get new sensor events with the readings */
+  sensors_event_t a, g, temp;
+  mpu.getEvent(&a, &g, &temp);
+
+  /* Print out the values */
+  Serial.print("Acceleration X: ");
+  Serial.print(a.acceleration.x);
+  Serial.print(", Y: ");
+  Serial.print(a.acceleration.y);
+  Serial.print(", Z: ");
+  Serial.print(a.acceleration.z);
+  Serial.println(" m/s^2");
+
+  Serial.print("Rotation X: ");
+  Serial.print(g.gyro.x);
+  Serial.print(", Y: ");
+  Serial.print(g.gyro.y);
+  Serial.print(", Z: ");
+  Serial.print(g.gyro.z);
+  Serial.println(" rad/s");
+
+  /* The temperature that is measured here is usually the temperature
+  in the sensor which is used for calibration purposes.*/
+  Serial.print("Temperature: ");
+  Serial.print(temp.temperature);
+  Serial.println(" degC");
 }
