@@ -7,134 +7,86 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
-Adafruit_LPS35HW lps35hw = Adafruit_LPS35HW();
+// ================================================================
+// ===                     Sensor VARIABLES                     ===
+// ================================================================
+
 Adafruit_MPU6050 mpu;
+Adafruit_LPS35HW lps = Adafruit_LPS35HW();
 
 Pixy2 pixy;
+
+// ================================================================
+// ===                     Motor VARIABLES                      ===
+// ================================================================
+
+#define ESC1_PIN 9
+#define ESC2_PIN 6
+#define ESC3_PIN 5
+#define ESC4_PIN 3
 
 Servo esc1;
 Servo esc2;
 Servo esc3;
 Servo esc4;
 
-int esc1pin = 9;
-int esc2pin = 6;
-int esc3pin = 5;
-int esc4pin = 3;
-
-int pre = 90;
+const short NEUTRAL = 90;
 int del = 1000;
 int test = 95;
 
+// ================================================================
+// ===                       OPERATIONS                         ===
+// ================================================================
+
+constexpr unsigned int LAUNCH_DELAY = 3000;
+
+#define LED_PIN 13
+bool blinkState = false;
+unsigned long toggle_time = 0;
+constexpr unsigned int LED_INCREMENT = 300;
+
+enum class State { StandBye, Running, Resting } state;
+
+// ================================================================
+// ===                  FUNCTION DECLERATIONS                   ===
+// ================================================================
+
+void MPU_Setup();
+void LPS_Setup();
+void Servo_Setup();
+void Operations_Setup();
+
+// ================================================================
+// ===                          SETUP                           ===
+// ================================================================
+
 void setup() {
   Serial.begin(115200);
-  while (!Serial)
-    delay(10);  // will pause Zero, Leonardo, etc until serial console opens
+  while (!Serial) delay(10);  // will pause until serial console opens
+  
+  MPU_Setup();
+  LPS_Setup();
+  Servo_Setup();
+  Operations_Setup();
 
-  Serial.println("Adafruit MPU6050 test!");
-
-  // Try to initialize!
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-  Serial.println("MPU6050 Found!");
-
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  Serial.print("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()) {
-    case MPU6050_RANGE_2_G:
-      Serial.println("+-2G");
-      break;
-    case MPU6050_RANGE_4_G:
-      Serial.println("+-4G");
-      break;
-    case MPU6050_RANGE_8_G:
-      Serial.println("+-8G");
-      break;
-    case MPU6050_RANGE_16_G:
-      Serial.println("+-16G");
-      break;
-  }
-  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  Serial.print("Gyro range set to: ");
-  switch (mpu.getGyroRange()) {
-    case MPU6050_RANGE_250_DEG:
-      Serial.println("+- 250 deg/s");
-      break;
-    case MPU6050_RANGE_500_DEG:
-      Serial.println("+- 500 deg/s");
-      break;
-    case MPU6050_RANGE_1000_DEG:
-      Serial.println("+- 1000 deg/s");
-      break;
-    case MPU6050_RANGE_2000_DEG:
-      Serial.println("+- 2000 deg/s");
-      break;
-  }
-
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  Serial.print("Filter bandwidth set to: ");
-  switch (mpu.getFilterBandwidth()) {
-    case MPU6050_BAND_260_HZ:
-      Serial.println("260 Hz");
-      break;
-    case MPU6050_BAND_184_HZ:
-      Serial.println("184 Hz");
-      break;
-    case MPU6050_BAND_94_HZ:
-      Serial.println("94 Hz");
-      break;
-    case MPU6050_BAND_44_HZ:
-      Serial.println("44 Hz");
-      break;
-    case MPU6050_BAND_21_HZ:
-      Serial.println("21 Hz");
-      break;
-    case MPU6050_BAND_10_HZ:
-      Serial.println("10 Hz");
-      break;
-    case MPU6050_BAND_5_HZ:
-      Serial.println("5 Hz");
-      break;
-  }
-
-  Serial.println("Adafruit LPS35HW Test");
-  if (!lps35hw.begin_I2C()) {
-    //if (!lps35hw.begin_SPI(LPS_CS)) {
-    //if (!lps35hw.begin_SPI(LPS_CS, LPS_SCK, LPS_MISO, LPS_MOSI)) {
-    Serial.println("Couldn't find LPS35HW chip");
-    while (1)
-      ;
-  }
-
-  Serial.println("Found LPS35HW chip");
-  Serial.println("");
+  Serial.println();
 
   pixy.init();
 
-  esc1.attach(esc1pin);
-  esc2.attach(esc2pin);
-  esc3.attach(esc3pin);
-  esc4.attach(esc4pin);
-
-  esc1.write(90);
-  esc2.write(90);
-  esc3.write(90);
-  esc4.write(90);
   delay(3000);
 }
 
-void loop() {
+// ================================================================
+// ===                           RUN                            ===
+// ================================================================
 
+void loop() {
   Serial.print("Temperature: ");
-  Serial.print(lps35hw.readTemperature());
+  Serial.print(lps.readTemperature());
   Serial.println(" C");
 
   Serial.print("Pressure: ");
-  Serial.print(lps35hw.readPressure());
+  Serial.print(lps.readPressure());
   Serial.println(" hPa");
 
   Serial.println();
@@ -214,9 +166,59 @@ void loop() {
   delay(del);
   */
 
-  esc1.write(90);
-  esc2.write(90);
-  esc3.write(90);
-  esc4.write(90);
+  esc1.write(NEUTRAL);
+  esc2.write(NEUTRAL);
+  esc3.write(NEUTRAL);
+  esc4.write(NEUTRAL);
   //delay(del);
+}
+
+// ================================================================
+// ===                   FUNCTION DEFINITIONS                   ===
+// ================================================================
+
+void MPU_Setup() {
+  if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (true) delay(10);
+  }
+  
+  // TODO: find the best values for these
+  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
+  mpu.setGyroRange(MPU6050_RANGE_500_DEG);
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
+  Serial.println("MPU Initialized");
+}
+
+void LPS_Setup() {
+  if (!lps.begin_I2C()) {
+    Serial.println("Failed to find LPS33HW chip");
+    while (true) delay(10);
+  }
+
+  Serial.println("Found LPS33HW chip");
+}
+
+void Servo_Setup() {
+  esc1.attach(ESC1_PIN);
+  esc2.attach(ESC2_PIN);
+  esc3.attach(ESC3_PIN);
+  esc4.attach(ESC4_PIN);
+
+  esc1.write(NEUTRAL);
+  esc2.write(NEUTRAL);
+  esc3.write(NEUTRAL);
+  esc4.write(NEUTRAL);
+
+  Serial.println("Servos Initialized");
+}
+
+void Operations_Setup() {
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, blinkState);
+  toggle_time = millis() + 1000;
+
+  state = State::StandBye;
+
+  Serial.println("Operations Initialized");
 }
