@@ -56,10 +56,10 @@ void LPS_Setup();
 void Servo_Setup();
 void Operations_Setup();
 
-void Update_Blink();
 void Get_LPS_Data();
 void Get_MPU_Data();
 void Get_Pixy_Data();
+void Update_Blink();
 
 // ================================================================
 // ===                          SETUP                           ===
@@ -141,17 +141,6 @@ void Operations_Setup() {
   state = State::StandBye;
 
   Serial.println("Operations Initialized");
-}
-
-// Blink every second
-void Update_Blink() {
-  if (millis() < toggle_time) return;
-
-  // Update LED
-  blinkState = !blinkState;
-  digitalWrite(LED_PIN, blinkState);
-
-  toggle_time = millis() + LED_INCREMENT;
 }
 
 void Get_LPS_Data() {
@@ -253,4 +242,15 @@ void Get_Pixy_Data() {
   esc3.write(NEUTRAL);
   esc4.write(NEUTRAL);
   //delay(del);
+}
+
+// Blink every second
+void Update_Blink() {
+  if (millis() < toggle_time) return;
+
+  // Update LED
+  blinkState = !blinkState;
+  digitalWrite(LED_PIN, blinkState);
+
+  toggle_time += LED_INCREMENT;
 }
