@@ -56,6 +56,8 @@ void LPS_Setup();
 void Servo_Setup();
 void Operations_Setup();
 
+void Update_Blink();
+
 // ================================================================
 // ===                          SETUP                           ===
 // ================================================================
@@ -73,7 +75,7 @@ void setup() {
 
   pixy.init();
 
-  delay(3000);
+  delay(LAUNCH_DELAY);
 }
 
 // ================================================================
@@ -171,6 +173,8 @@ void loop() {
   esc3.write(NEUTRAL);
   esc4.write(NEUTRAL);
   //delay(del);
+  
+  Update_Blink();
 }
 
 // ================================================================
@@ -221,4 +225,15 @@ void Operations_Setup() {
   state = State::StandBye;
 
   Serial.println("Operations Initialized");
+}
+
+// Blink every second
+void Update_Blink() {
+  if (millis() < toggle_time) return;
+
+  // Update LED
+  blinkState = !blinkState;
+  digitalWrite(LED_PIN, blinkState);
+
+  toggle_time = millis() + LED_INCREMENT;
 }
