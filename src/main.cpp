@@ -114,8 +114,6 @@ void Update_Servos();
 
 void Update_Blink();
 
-// this is a test comment
-
 // ================================================================
 // ===                          SETUP                           ===
 // ================================================================
@@ -272,13 +270,13 @@ void Get_Pixy_Data() {
 
   // If there are detect blocks, print them!
   if (pixy.ccc.numBlocks) {
-    Serial.println("EYOOOOOOOOOO");
-    Serial.print("Detected ");
-    Serial.println(pixy.ccc.numBlocks);
-
     target_x = pixy.ccc.blocks[0].m_x;
     target_y = pixy.ccc.blocks[0].m_y;
   }
+
+  Serial.print(target_x);
+  Serial.print(" | ");
+  Serial.println(target_y);
 }
 
 void Calculate_Acceleration_Vector() {
