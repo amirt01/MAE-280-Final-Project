@@ -67,6 +67,8 @@ Servo esc4;
 const short NEUTRAL = 90;
 const short MAX_NEG = 0;
 const short MAX_POS = 180;
+const short MIN_FREQ = 1000;
+const short MAX_FREQ = 2000;
 
 // ================================================================
 // ===                       OPERATIONS                         ===
@@ -80,6 +82,7 @@ unsigned long toggle_time = 0;
 constexpr unsigned int LED_INCREMENT = 300;
 
 float acceleration_vector[2];
+bool arrived = false;
 
 // ================================================================
 // ===                  FUNCTION DECLERATIONS                   ===
@@ -100,6 +103,7 @@ void Get_Pixy_Data();
 
 void Calculate_Acceleration_Vector();
 void Update_Servos();
+void Surface();
 
 void Update_Blink();
 
@@ -113,6 +117,7 @@ void setup() {
   
   MPU_Setup();
   LPS_Setup();
+  const unsigned int INITIAL_PRESSURE = lps.readPressure();
   Servo_Setup();
   Operations_Setup();
   Channel_Setup();
@@ -132,29 +137,27 @@ void setup() {
 void loop() {
   duration5 = pulseIn(CH5, HIGH);
   
-  if (duration5 > 1800) {
+  if (duration5 > 1800 || duration5 == 0) {
     Serial.println("AUTONOMOUS");
 
     Get_LPS_Data();
     Get_MPU_Data();
     Get_Pixy_Data();
+    
+    if (arrived) {
+      Surface();
+      return;
+    }
 
     Calculate_Acceleration_Vector();
     Update_Servos();
-  } else if (duration5 < 1100 && duration5 > 0) {
+  } else if (duration5 < 1100) {
     Serial.println("MANUAL");
 
     Get_RC_Values();
     Update_Servo_Manual();
-  } else if (duration5 == 0) {
-    Serial.println("DEAD");
-    
-    esc1.write(NEUTRAL); 
-    esc2.write(NEUTRAL);
-    esc3.write(NEUTRAL);
-    esc4.write(NEUTRAL);
   } else {
-    Serial.println("wtf u doin'...");
+    Serial.println("WTF u doin'...");
   }
   
   Update_Blink();
@@ -187,10 +190,10 @@ void LPS_Setup() {
 }
 
 void Servo_Setup() {
-  esc1.attach(ESC1_PIN, 1000, 2000);
-  esc2.attach(ESC2_PIN, 1000, 2000);
-  esc3.attach(ESC3_PIN, 1000, 2000);
-  esc4.attach(ESC4_PIN, 1000, 2000);
+  esc1.attach(ESC1_PIN, MIN_FREQ, MAX_FREQ);
+  esc2.attach(ESC2_PIN, MIN_FREQ, MAX_FREQ);
+  esc3.attach(ESC3_PIN, MIN_FREQ, MAX_FREQ);
+  esc4.attach(ESC4_PIN, MIN_FREQ, MAX_FREQ);
 
   esc1.write(NEUTRAL);
   esc2.write(NEUTRAL);
@@ -208,30 +211,50 @@ void Operations_Setup() {
   Serial.println("Operations Initialized");
 }
 
-void Channel_Setup(){
+void Channel_Setup() {
   pinMode(CH1, INPUT);
   pinMode(CH2, INPUT);
   pinMode(CH3, INPUT);
-  //pinMode(CH4, INPUT);
+  // pinMode(CH4, INPUT);
   pinMode(CH5, INPUT);
+
+  Serial.println("Channels Initialized");
 }
 
 void Get_RC_Values() {
   duration1 = pulseIn(CH1, HIGH);
   duration2 = pulseIn(CH2, HIGH);
   duration3 = pulseIn(CH3, HIGH);
+
+  Serial.print("RC Values: (");
+  Serial.print(duration1);
+  Serial.print(", ");
+  Serial.print(duration2);
+  Serial.print(", ");
+  Serial.print(duration3);
+  Serial.println(")");
 }
 
 void Update_Servo_Manual() {
-  //Depth
-  CH3_sig = map(duration3, 1000, 2000, 0, 180);
+  // Depth
+  CH3_sig = map(duration3, MIN_FREQ, MAX_FREQ, MAX_NEG, MAX_POS);
   esc1.write(CH3_sig);
   esc3.write(CH3_sig);
 
   // Thrust
-  CH2_sig = map(duration2, 1000, 2000, 0, 180);
+  CH2_sig = map(duration2, MIN_FREQ, MAX_FREQ, MAX_NEG, MAX_POS);
   esc2.write(CH2_sig);
   esc4.write(CH2_sig);
+
+  // Yaw
+  CH1_sig = map(duration1, MIN_FREQ, MAX_FREQ, MAX_NEG, MAX_POS);
+  if (CH1_sig > 90) {
+    esc1.write(CH1_sig);
+    esc3.write(MAX_POS - CH1_sig);
+  } else {
+    esc1.write(MAX_POS - CH1_sig);
+    esc3.write(CH1_sig);
+  }
 }
 
 void Get_LPS_Data() {
@@ -250,32 +273,38 @@ void Get_MPU_Data() {
   gyro_y = g.gyro.x;
   gyro_z = g.gyro.x;
 
-  Serial.print("Rotation X: ");
+  Serial.print("Rotation (");
   Serial.print(gyro_x);
-  Serial.print(", Y: ");
+  Serial.print(", ");
   Serial.print(gyro_y);
-  Serial.print(", Z: ");
+  Serial.print(", ");
   Serial.print(gyro_z);
-  Serial.println(" rad/s");
+  Serial.println(") rad/s");
 }
 
 void Get_Pixy_Data() {
   pixy.ccc.getBlocks();
 
-  if (pixy.ccc.numBlocks) {
+  if (!pixy.ccc.numBlocks) {
+    target_x = 2 / 3 * CENTER_X;
+    target_y = CENTER_Y;
+  } else {
     target_x = pixy.ccc.blocks[0].m_x;
     target_y = pixy.ccc.blocks[0].m_y;
+
+    if (pixy.ccc.blocks[0].m_width > 300)
+      arrived = true;
   }
 
+  Serial.print("Pixy Data: (");
   Serial.print(target_x);
-  Serial.print(" | ");
-  Serial.println(target_y);
+  Serial.print(", ");
+  Serial.print(target_y);
+  Serial.println(")");
 }
 
 void Calculate_Acceleration_Vector() {
   // initially set to pixy x, y
-  Serial.print("target_x");
-  Serial.println(target_x);
   acceleration_vector[0] = (target_x - CENTER_X) * PIXY_KP_X;
   acceleration_vector[1] = (target_y - CENTER_Y) * PIXY_KP_Y;
 
@@ -288,14 +317,33 @@ void Calculate_Acceleration_Vector() {
     acceleration_vector[0] -= (acceleration_vector[0] - NEUTRAL) * MPU_KD_X;
   else if (acceleration_vector[1] > NEUTRAL && gyro_x > 10)
     acceleration_vector[1] -= (acceleration_vector[1] - NEUTRAL) * MPU_KD_Y;
+
+  Serial.print("Acceleration Vector: (");
+  Serial.print(acceleration_vector[0]);
+  Serial.print(", ");
+  Serial.print(acceleration_vector[1]);
+  Serial.println(")");
 }
 
 void Update_Servos() {
+  int esc1_val = map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 45;
+  int esc2_val = map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 45;
+  int esc3_val = map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0);
+  int esc4_val = map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0);
+
   // Write to the servos
-  esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 45);
-  esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 45);
-  esc2.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
-  esc4.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
+  esc1.write(esc1_val);
+  esc3.write(esc2_val);
+  esc2.write(esc3_val);
+  esc4.write(esc4_val);
+}
+
+// Return to the surface
+void Surface() {
+  esc1.write(90);
+  esc3.write(90);
+  esc2.write(120);
+  esc4.write(120);
 }
 
 // Blink every second
