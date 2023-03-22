@@ -123,7 +123,6 @@ void setup() {
   Channel_Setup();
 
   pixy.init();
-  pixy.setLamp(1,1);
 
   Serial.println();
 
@@ -226,35 +225,35 @@ void Get_RC_Values() {
   duration2 = pulseIn(CH2, HIGH);
   duration3 = pulseIn(CH3, HIGH);
 
-  Serial.print("RC Values: (");
+/*  Serial.print("RC Values: (");
   Serial.print(duration1);
   Serial.print(", ");
   Serial.print(duration2);
   Serial.print(", ");
   Serial.print(duration3);
-  Serial.println(")");
+  Serial.println(")");*/
 }
 
 void Update_Servo_Manual() {
-  // Depth
+  // Thrust and Yaw
   CH3_sig = map(duration3, MIN_FREQ, MAX_FREQ, MAX_NEG, MAX_POS);
-  esc1.write(CH3_sig);
-  esc3.write(CH3_sig);
+  CH1_sig = map(duration1, MIN_FREQ, MAX_FREQ, MAX_POS, MAX_NEG);
 
-  // Thrust
+  esc1.write(CH3_sig + (CH1_sig - 90));
+  esc3.write(CH3_sig - (CH1_sig - 90));
+
+  // Depth
   CH2_sig = map(duration2, MIN_FREQ, MAX_FREQ, MAX_NEG, MAX_POS);
   esc2.write(CH2_sig);
   esc4.write(CH2_sig);
 
-  // Yaw
-  CH1_sig = map(duration1, MIN_FREQ, MAX_FREQ, MAX_NEG, MAX_POS);
-  if (CH1_sig > 90) {
-    esc1.write(CH1_sig);
-    esc3.write(MAX_POS - CH1_sig);
-  } else {
-    esc1.write(MAX_POS - CH1_sig);
-    esc3.write(CH1_sig);
-  }
+  Serial.print("chan: (");
+  Serial.print(CH1_sig);
+  Serial.print(", ");
+  Serial.print(CH2_sig);
+  Serial.print(", ");
+  Serial.print(CH3_sig);
+  Serial.println(")");
 }
 
 void Get_LPS_Data() {
@@ -286,7 +285,7 @@ void Get_Pixy_Data() {
   pixy.ccc.getBlocks();
 
   if (!pixy.ccc.numBlocks) {
-    target_x = 2 / 3 * CENTER_X;
+    target_x = CENTER_X;
     target_y = CENTER_Y;
   } else {
     target_x = pixy.ccc.blocks[0].m_x;
@@ -295,7 +294,7 @@ void Get_Pixy_Data() {
     if (pixy.ccc.blocks[0].m_width > 300)
       arrived = true;
   }
-
+   
   Serial.print("Pixy Data: (");
   Serial.print(target_x);
   Serial.print(", ");
@@ -326,8 +325,8 @@ void Calculate_Acceleration_Vector() {
 }
 
 void Update_Servos() {
-  int esc1_val = map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 45;
-  int esc2_val = map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 45;
+  int esc1_val = map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 45;
+  int esc2_val = map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 45;
   int esc3_val = map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0);
   int esc4_val = map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0);
 
