@@ -60,7 +60,6 @@ unsigned long duration3;
 unsigned long duration4;
 unsigned long duration5;
 
-
 // ================================================================
 // ===                     Motor VARIABLES                      ===
 // ================================================================
@@ -104,7 +103,8 @@ void Servo_Setup();
 void Operations_Setup();
 void Channel_Setup();
 
-void Manual_Control();
+void Get_RC_Values();
+void Update_Servo_Manual();
 
 void Get_LPS_Data();
 void Get_MPU_Data();
@@ -144,7 +144,8 @@ void loop() {
   switch (control_mode)
   {
   case Control_Mode::manual:
-    Manual_Control();
+    Get_RC_Values();
+    Update_Servo_Manual();
     break;
   case Control_Mode::autonomous:
     Get_LPS_Data();
@@ -217,39 +218,33 @@ void Channel_Setup(){
   pinMode(CH5, INPUT);
 }
 
-void Manual_Control() {
+void Get_RC_Values() {
   duration1 = pulseIn(CH1, HIGH);
   duration2 = pulseIn(CH2, HIGH);
   duration3 = pulseIn(CH3, HIGH);
-  //duration4 = pulseIn(CH4, HIGH, 3000);
+  duration4 = pulseIn(CH4, HIGH, 3000);
+  duration5 = pulseIn(CH5, HIGH, 3000);
+}
 
-  //Serial.println(duration1);
-  //Serial.println(duration2);
-  //Serial.println(duration3);
-  //Serial.println(duration4);
-  //Serial.println(duration5);
-  //Serial.println("");
-
+void Update_Servo_Manual() {
   // Pitch
-  //  if (duration2 >= 1350 && duration2 <= 1600) {
-  //    ESC1.write(90);
-  //    ESC2.write(90);
-  //    ESC3.write(90);
-  //    ESC4.write(90);
-  //  }
-  //
-  //  else {
-  //    CH2_sig = map(duration2, 1000, 2000, 0, 180);
-  //    ESC1.write(90);
-  //    ESC2.write(CH2_sig);
-  //    ESC3.write(CH2_sig);
-  //    ESC4.write(90);
-  //  }
+  if (duration2 >= 1350 && duration2 <= 1600) {
+    esc1.write(NEUTRAL);
+    esc2.write(NEUTRAL);
+    esc3.write(NEUTRAL);
+    esc4.write(NEUTRAL);
+  } else {
+    CH2_sig = map(duration2, 1000, 2000, 0, 180);
+    esc1.write(NEUTRAL);
+    esc2.write(CH2_sig);
+    esc3.write(CH2_sig);
+    esc4.write(NEUTRAL);
+  }
 
   // Yaw
-  //  CH1_sig = map(duration1,1000,2000,0,180);
-  //  ESC3.write(CH2_sig);
-  //  ESC4.write(180 - CH2_sig);
+  CH1_sig = map(duration1,1000,2000,0,180);
+  esc3.write(CH2_sig);
+  esc4.write(180 - CH2_sig);
 
   // Thrust
   CH3_sig = map(duration3, 1000, 2000, 0, 180);
