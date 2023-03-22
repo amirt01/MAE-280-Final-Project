@@ -81,7 +81,7 @@ bool blinkState = false;
 unsigned long toggle_time = 0;
 constexpr unsigned int LED_INCREMENT = 300;
 
-float acceleration_vector[2] = {0, 0};
+float acceleration_vector[2];
 
 enum Control_Mode { manual, autonomous } control_mode;
 
