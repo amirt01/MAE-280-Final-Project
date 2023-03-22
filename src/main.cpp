@@ -48,7 +48,6 @@ int CH4_sig;
 unsigned long duration1;
 unsigned long duration2;
 unsigned long duration3;
-unsigned long duration4;
 unsigned long duration5;
 
 // ================================================================
@@ -81,8 +80,6 @@ unsigned long toggle_time = 0;
 constexpr unsigned int LED_INCREMENT = 300;
 
 float acceleration_vector[2];
-
-enum Control_Mode { manual, autonomous , dead} control_mode;
 
 // ================================================================
 // ===                  FUNCTION DECLERATIONS                   ===
