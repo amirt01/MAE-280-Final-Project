@@ -14,22 +14,22 @@
 Adafruit_LPS35HW lps = Adafruit_LPS35HW();
 const float target_pressure = 62.4 * 2;  // 62.4 lbs/ft3 * 2 ft deep
 float pressure = 0.f;
-const float lps_Kp = 0.f;
+const float LPS_KP = 0.f;
 
 Adafruit_MPU6050 mpu;
-float gyro_x = 0.f;
-float gyro_y = 0.f;
-float gyro_z = 0.f;
-float mpu_Kd_x = 1.f;
-float mpu_Kd_y = 1.f;
+float gyro_x;
+float gyro_y;
+float gyro_z;
+const float MPU_KD_X = 1.f;
+const float MPU_KD_Y = 1.f;
 
 Pixy2 pixy;
 const uint16_t center_x = 157;
 const uint16_t center_y = 103;
 uint16_t target_x = 0;
 uint16_t target_y = 0;
-float pixy_Kp_x = 1.f;
-float pixy_Kp_y = 1.f;
+const float PIXY_KP_X = 1.f;
+const float PIXY_KP_Y = 1.f;
 
 // ================================================================
 // ===                    RECIEVER VARIABLES                    ===
@@ -288,12 +288,12 @@ void Get_Pixy_Data() {
 
 void Calculate_Acceleration_Vector() {
   // initially set to pixy x, y
-  acceleration_vector[0] = (target_x - center_x) * pixy_Kp_x;
-  acceleration_vector[1] = (target_y - center_y) * pixy_Kp_y;
+  acceleration_vector[0] = (target_x - center_x) * PIXY_KP_X;
+  acceleration_vector[1] = (target_y - center_y) * PIXY_KP_Y;
 
   // if too deep, pitch up | if too shallow, pitch down
-  if (pressure > target_pressure) acceleration_vector[1] += (pressure - target_pressure) * lps_Kp;
-  else if (pressure < target_pressure) acceleration_vector[1] += (target_pressure - pressure) * lps_Kp;
+  if (pressure > target_pressure) acceleration_vector[1] += (pressure - target_pressure) * LPS_KP;
+  else if (pressure < target_pressure) acceleration_vector[1] += (target_pressure - pressure) * LPS_KP;
 }
 
 void Update_Servos() {
@@ -303,9 +303,9 @@ void Update_Servos() {
 
   // limit based on gyro
   if (x_servo_power > NEUTRAL && gyro_x > 10)
-    x_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, x_servo_power) * mpu_Kd_x;
+    x_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, x_servo_power) * MPU_KD_X;
   else if (y_servo_power > NEUTRAL && gyro_x > 10)
-    y_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, y_servo_power) * mpu_Kd_y;
+    y_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, y_servo_power) * MPU_KD_Y;
 }
 
 // Blink every second
