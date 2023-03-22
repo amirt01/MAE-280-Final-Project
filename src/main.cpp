@@ -295,8 +295,8 @@ void Calculate_Acceleration_Vector() {
 
 void Update_Servos() {
   // Write to the servos
-  esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 40);
-  esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 40);
+  esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 45);
+  esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 45);
   esc2.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
   esc4.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
 }
