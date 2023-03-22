@@ -43,7 +43,6 @@ int CH4_sig;
 #define CH1 2
 #define CH2 4
 #define CH3 7
-#define CH4 10
 #define CH5 8
 
 unsigned long duration1;
@@ -83,7 +82,7 @@ constexpr unsigned int LED_INCREMENT = 300;
 
 float acceleration_vector[2];
 
-enum Control_Mode { manual, autonomous } control_mode;
+enum Control_Mode { manual, autonomous , dead} control_mode;
 
 // ================================================================
 // ===                  FUNCTION DECLERATIONS                   ===
@@ -96,6 +95,7 @@ void Operations_Setup();
 void Channel_Setup();
 
 void Get_RC_Values();
+void Get_Mode();
 void Update_Servo_Manual();
 
 void Get_LPS_Data();
@@ -125,6 +125,8 @@ void setup() {
 
   pixy.init();
 
+  pixy.setLamp(1,1);
+
   delay(LAUNCH_DELAY);
 }
 
@@ -133,20 +135,26 @@ void setup() {
 // ================================================================
 
 void loop() {
-  switch (control_mode)
-  {
-  case Control_Mode::manual:
-    Get_RC_Values();
-    Update_Servo_Manual();
-    break;
+  Get_Mode();  
+
+  switch (control_mode) {
   case Control_Mode::autonomous:
-    Get_LPS_Data();
+    /*Get_LPS_Data();
     Get_MPU_Data();
     Get_Pixy_Data();
 
     Calculate_Acceleration_Vector();
-    Update_Servos();
+    Update_Servos();*/
     break;
+  case Control_Mode::manual:
+    Get_RC_Values();
+    Update_Servo_Manual();
+    break;
+  case Control_Mode::dead:
+    esc1.write(NEUTRAL); 
+    esc2.write(NEUTRAL);
+    esc3.write(NEUTRAL);
+    esc4.write(NEUTRAL);
   }
   
   Update_Blink();
@@ -179,10 +187,10 @@ void LPS_Setup() {
 }
 
 void Servo_Setup() {
-  esc1.attach(ESC1_PIN);
-  esc2.attach(ESC2_PIN);
-  esc3.attach(ESC3_PIN);
-  esc4.attach(ESC4_PIN);
+  esc1.attach(ESC1_PIN, 1000, 2000);
+  esc2.attach(ESC2_PIN, 1000, 2000);
+  esc3.attach(ESC3_PIN, 1000, 2000);
+  esc4.attach(ESC4_PIN, 1000, 2000);
 
   esc1.write(NEUTRAL);
   esc2.write(NEUTRAL);
@@ -210,42 +218,47 @@ void Channel_Setup(){
   pinMode(CH5, INPUT);
 }
 
+void Get_Mode() {
+  duration5 = pulseIn(CH5, HIGH);
+    Serial.println("Duration5:  ");
+    Serial.println(duration5);
+  // Autonomous
+  if (duration5 > 1800) {
+      control_mode = Control_Mode::autonomous;
+      Serial.println("AUTONOMOUS");
+  }
+
+  // Manual
+  else if (duration5 < 1100 && duration5 > 0) {
+      control_mode = Control_Mode::manual;
+       Serial.println("MANUAL");
+  
+  }
+  // Dead
+  else if (duration5 == 0) {
+      control_mode = Control_Mode::dead;
+       Serial.println("DEAD");
+  
+  }
+
+}
+
 void Get_RC_Values() {
   duration1 = pulseIn(CH1, HIGH);
   duration2 = pulseIn(CH2, HIGH);
   duration3 = pulseIn(CH3, HIGH);
-  duration4 = pulseIn(CH4, HIGH, 3000);
-  duration5 = pulseIn(CH5, HIGH, 3000);
 }
 
 void Update_Servo_Manual() {
-  // Pitch
-  if (duration2 >= 1350 && duration2 <= 1600) {
-    esc1.write(NEUTRAL);
-    esc2.write(NEUTRAL);
-    esc3.write(NEUTRAL);
-    esc4.write(NEUTRAL);
-  } else {
-    CH2_sig = map(duration2, 1000, 2000, 0, 180);
-    esc1.write(NEUTRAL);
-    esc2.write(CH2_sig);
-    esc3.write(CH2_sig);
-    esc4.write(NEUTRAL);
-  }
-
-  // Yaw
-  CH1_sig = map(duration1,1000,2000,0,180);
-  esc3.write(CH2_sig);
-  esc4.write(180 - CH2_sig);
-
-  // Thrust
+  //Depth
   CH3_sig = map(duration3, 1000, 2000, 0, 180);
   esc1.write(CH3_sig);
-  esc4.write(CH3_sig);
+  esc3.write(CH3_sig);
 
+  // Thrust
   CH2_sig = map(duration2, 1000, 2000, 0, 180);
   esc2.write(CH2_sig);
-  esc3.write(CH2_sig);
+  esc4.write(CH2_sig);
 }
 
 void Get_LPS_Data() {
