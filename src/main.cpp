@@ -12,23 +12,53 @@
 // ================================================================
 
 Adafruit_LPS35HW lps = Adafruit_LPS35HW();
-float lps_temp = 0;
-float pressure = 0;
+const float target_pressure = 62.4 * 2;  // 62.4 lbs/ft3 * 2 ft deep
+float pressure = 0.f;
+const float lps_Kp = 0.f;
+// float lps_temp = 0;
 
 Adafruit_MPU6050 mpu;
-float mpu_temp = 0;
-float accel_x = 0;
-float accel_y = 0;
-float accel_z = 0;
-float gyro_x = 0;
-float gyro_y = 0;
-float gyro_z = 0;
+float gyro_x = 0.f;
+float gyro_y = 0.f;
+float gyro_z = 0.f;
+// float mpu_temp = 0;
+// float accel_x = 0;
+// float accel_y = 0;
+// float accel_z = 0;
 
 Pixy2 pixy;
+const uint16_t center_x = 157;
+const uint16_t center_y = 103;
 uint16_t target_x = 0;
 uint16_t target_y = 0;
-uint16_t target_width = 0;
-uint16_t target_width = 0;
+float pixy_Kp_x = 1.f;
+float pixy_Kp_y = 1.f;
+// uint16_t target_width = 0;
+// uint16_t target_height = 0;
+
+// ================================================================
+// ===                    RECIEVER VARIABLES                    ===
+// ================================================================
+
+// channel variables for receiver readings
+int CH1_sig;
+int CH2_sig;
+int CH3_sig;
+int CH4_sig;
+
+#define CH1 2
+#define CH2 4
+#define CH3 7
+#define CH4 10
+#define CH5 8
+
+unsigned long duration1;
+unsigned long duration2;
+unsigned long duration3;
+unsigned long duration4;
+unsigned long duration5;
+
+enum Control_Mode { manual, autonomous } control_mode;
 
 // ================================================================
 // ===                     Motor VARIABLES                      ===
@@ -45,8 +75,8 @@ Servo esc3;
 Servo esc4;
 
 const short NEUTRAL = 90;
-int del = 1000;
-int test = 95;
+const short MAX_NEG = 0;
+const short MAX_POS = 180;
 
 // ================================================================
 // ===                       OPERATIONS                         ===
@@ -59,6 +89,8 @@ bool blinkState = false;
 unsigned long toggle_time = 0;
 constexpr unsigned int LED_INCREMENT = 300;
 
+float acceleration_vector[2] = {0, 0};
+
 enum class State { StandBye, Running, Resting } state;
 
 // ================================================================
@@ -69,6 +101,7 @@ void MPU_Setup();
 void LPS_Setup();
 void Servo_Setup();
 void Operations_Setup();
+void Channel_Setup();
 
 void Get_LPS_Data();
 void Get_MPU_Data();
@@ -93,6 +126,7 @@ void setup() {
   LPS_Setup();
   Servo_Setup();
   Operations_Setup();
+  Channel_Setup();
 
   Serial.println();
 
@@ -111,6 +145,7 @@ void loop() {
   Get_Pixy_Data();
   
   Calculate_Acceleration_Vector();
+  Update_Servos();
 
   Update_Blink();
 }
@@ -165,19 +200,28 @@ void Operations_Setup() {
   Serial.println("Operations Initialized");
 }
 
-void Get_LPS_Data() {
-  lps_temp = lps.readTemperature();
-  pressure = lps.readPressure();
+void Channel_Setup(){
+  pinMode(CH1, INPUT);
+  pinMode(CH2, INPUT);
+  pinMode(CH3, INPUT);
+  //pinMode(CH4, INPUT);
+  pinMode(CH5, INPUT);
+}
 
-  /* The temperature that is measured here is usually the temperature
-  in the sensor which is used for calibration purposes.*/
-  Serial.print("Temperature: ");
-  Serial.print(lps_temp);
-  Serial.println(" C");
+
+void Get_LPS_Data() {
+  pressure = lps.readPressure();
+  // lps_temp = lps.readTemperature();
 
   Serial.print("Pressure: ");
   Serial.print(pressure);
   Serial.println(" hPa");
+
+  /* The temperature that is measured here is usually the temperature
+  in the sensor which is used for calibration purposes.*/
+  // Serial.print("Temperature: ");
+  // Serial.print(lps_temp);
+  // Serial.println(" C");
 }
 
 void Get_MPU_Data() {
@@ -187,24 +231,16 @@ void Get_MPU_Data() {
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  accel_x = a.acceleration.x;
-  accel_y = a.acceleration.x;
-  accel_z = a.acceleration.x;
-  
   gyro_x = g.gyro.x;
   gyro_y = g.gyro.x;
   gyro_z = g.gyro.x;
-  
-  mpu_temp = temp.temperature;
 
-  /* Print out the values */
-  Serial.print("Acceleration X: ");
-  Serial.print(accel_x);
-  Serial.print(", Y: ");
-  Serial.print(accel_y);
-  Serial.print(", Z: ");
-  Serial.print(accel_z);
-  Serial.println(" m/s^2");
+  // accel_x = a.acceleration.x;
+  // accel_y = a.acceleration.x;
+  // accel_z = a.acceleration.x;  
+  // mpu_temp = temp.temperature;
+
+  // /* Print out the values */
 
   Serial.print("Rotation X: ");
   Serial.print(gyro_x);
@@ -214,11 +250,18 @@ void Get_MPU_Data() {
   Serial.print(gyro_z);
   Serial.println(" rad/s");
 
+  // Serial.print("Acceleration X: ");
+  // Serial.print(accel_x);
+  // Serial.print(", Y: ");
+  // Serial.print(accel_y);
+  // Serial.print(", Z: ");
+  // Serial.print(accel_z);
+  // Serial.println(" m/s^2");
   /* The temperature that is measured here is usually the temperature
   in the sensor which is used for calibration purposes.*/
-  Serial.print("Temperature: ");
-  Serial.print(mpu_temp);
-  Serial.println(" degC");
+  // Serial.print("Temperature: ");
+  // Serial.print(mpu_temp);
+  // Serial.println(" degC");
 }
 
 void Get_Pixy_Data() {
@@ -237,6 +280,26 @@ void Get_Pixy_Data() {
 }
 
 void Calculate_Acceleration_Vector() {
+  // initially set to pixy x, y
+  acceleration_vector[0] = (target_x - center_x) * pixy_Kp_x;
+  acceleration_vector[1] = (target_y - center_y) * pixy_Kp_y;
+
+  // if too deep, pitch up | if too shallow, pitch down
+  if (pressure > target_pressure) acceleration_vector[1] += (pressure - target_pressure) * lps_Kp;
+  else if (pressure < target_pressure) acceleration_vector[1] += (target_pressure - pressure) * lps_Kp;
+}
+
+void Update_Servos() {
+  // calculate new servos
+  // map x value to yaw motors
+  // map y values to pitch motors
+
+  // limit based on gyro
+  if (gyro_y >= 10) {
+    // roll motors to correct
+  } else if (gyro_x >= 10) {
+    // pitch motors to correct
+  }
   
 }
 
