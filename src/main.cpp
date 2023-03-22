@@ -20,8 +20,8 @@ Adafruit_MPU6050 mpu;
 float gyro_x;
 float gyro_y;
 float gyro_z;
-const float MPU_KD_X = 1.f;
-const float MPU_KD_Y = 1.f;
+const float MPU_KD_X = 0.1f;
+const float MPU_KD_Y = 0.1f;
 
 Pixy2 pixy;
 const uint16_t center_x = 157;
@@ -298,14 +298,20 @@ void Calculate_Acceleration_Vector() {
 
 void Update_Servos() {
   // calculate new servos
-  long x_servo_power = map(MAX_NEG, MAX_POS, 0, 315, acceleration_vector[0]);
-  long y_servo_power = map(MAX_NEG, MAX_POS, 0, 207, acceleration_vector[1]);
+  long x_servo_power = map(0, 315, MAX_NEG, MAX_POS, acceleration_vector[0]);
+  long y_servo_power = map(0, 207, MAX_NEG, MAX_POS, acceleration_vector[1]);
 
   // limit based on gyro
   if (x_servo_power > NEUTRAL && gyro_x > 10)
-    x_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, x_servo_power) * MPU_KD_X;
+    x_servo_power -= (x_servo_power - NEUTRAL) * MPU_KD_X + NEUTRAL;
   else if (y_servo_power > NEUTRAL && gyro_x > 10)
-    y_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, y_servo_power) * MPU_KD_Y;
+    y_servo_power -= (y_servo_power - NEUTRAL) * MPU_KD_Y + NEUTRAL;
+  
+  // Write to the servos
+  esc1.write(NEUTRAL);
+  esc2.write(NEUTRAL);
+  esc3.write(NEUTRAL);
+  esc4.write(NEUTRAL);
 }
 
 // Blink every second
