@@ -21,6 +21,8 @@ Adafruit_MPU6050 mpu;
 float gyro_x = 0.f;
 float gyro_y = 0.f;
 float gyro_z = 0.f;
+float mpu_Kd_x = 1.f;
+float mpu_Kd_y = 1.f;
 // float mpu_temp = 0;
 // float accel_x = 0;
 // float accel_y = 0;
@@ -291,16 +293,14 @@ void Calculate_Acceleration_Vector() {
 
 void Update_Servos() {
   // calculate new servos
-  // map x value to yaw motors
-  // map y values to pitch motors
+  long x_servo_power = map(MAX_NEG, MAX_POS, 0, 315, acceleration_vector[0]);
+  long y_servo_power = map(MAX_NEG, MAX_POS, 0, 207, acceleration_vector[1]);
 
   // limit based on gyro
-  if (gyro_y >= 10) {
-    // roll motors to correct
-  } else if (gyro_x >= 10) {
-    // pitch motors to correct
-  }
-  
+  if (x_servo_power > NEUTRAL && gyro_x > 10)
+    x_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, x_servo_power) * mpu_Kd_x;
+  else if (y_servo_power > NEUTRAL && gyro_x > 10)
+    y_servo_power -= map(MAX_NEG, MAX_POS, 0, 10, y_servo_power) * mpu_Kd_y;
 }
 
 // Blink every second
