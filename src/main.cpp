@@ -24,10 +24,12 @@ const float MPU_KD_X = 0.1f;
 const float MPU_KD_Y = 0.1f;
 
 Pixy2 pixy;
-const uint16_t center_x = 157;
-const uint16_t center_y = 103;
-uint16_t target_x;
-uint16_t target_y;
+const int16_t CENTER_X = 157;
+const int16_t CENTER_Y = 103;
+const int16_t PIXY_WIDTH = 315;
+const int16_t PIXY_HEIGHT = 207;
+int16_t target_x;
+int16_t target_y;
 const float PIXY_KP_X = 1.f;
 const float PIXY_KP_Y = 1.f;
 
@@ -95,7 +97,6 @@ void Operations_Setup();
 void Channel_Setup();
 
 void Get_RC_Values();
-void Get_Mode();
 void Update_Servo_Manual();
 
 void Get_LPS_Data();
@@ -121,11 +122,10 @@ void setup() {
   Operations_Setup();
   Channel_Setup();
 
-  Serial.println();
-
   pixy.init();
-
   pixy.setLamp(1,1);
+
+  Serial.println();
 
   delay(LAUNCH_DELAY);
 }
@@ -135,26 +135,31 @@ void setup() {
 // ================================================================
 
 void loop() {
-  Get_Mode();  
+  duration5 = pulseIn(CH5, HIGH);
+  
+  if (duration5 > 1800) {
+    Serial.println("AUTONOMOUS");
 
-  switch (control_mode) {
-  case Control_Mode::autonomous:
-    /*Get_LPS_Data();
+    Get_LPS_Data();
     Get_MPU_Data();
     Get_Pixy_Data();
 
     Calculate_Acceleration_Vector();
-    Update_Servos();*/
-    break;
-  case Control_Mode::manual:
+    Update_Servos();
+  } else if (duration5 < 1100 && duration5 > 0) {
+    Serial.println("MANUAL");
+
     Get_RC_Values();
     Update_Servo_Manual();
-    break;
-  case Control_Mode::dead:
+  } else if (duration5 == 0) {
+    Serial.println("DEAD");
+    
     esc1.write(NEUTRAL); 
     esc2.write(NEUTRAL);
     esc3.write(NEUTRAL);
     esc4.write(NEUTRAL);
+  } else {
+    Serial.println("wtf u doin'...");
   }
   
   Update_Blink();
@@ -205,8 +210,6 @@ void Operations_Setup() {
   digitalWrite(LED_PIN, blinkState);
   toggle_time = millis() + 1000;
 
-  control_mode = Control_Mode::manual;
-
   Serial.println("Operations Initialized");
 }
 
@@ -216,31 +219,6 @@ void Channel_Setup(){
   pinMode(CH3, INPUT);
   //pinMode(CH4, INPUT);
   pinMode(CH5, INPUT);
-}
-
-void Get_Mode() {
-  duration5 = pulseIn(CH5, HIGH);
-    Serial.println("Duration5:  ");
-    Serial.println(duration5);
-  // Autonomous
-  if (duration5 > 1800) {
-      control_mode = Control_Mode::autonomous;
-      Serial.println("AUTONOMOUS");
-  }
-
-  // Manual
-  else if (duration5 < 1100 && duration5 > 0) {
-      control_mode = Control_Mode::manual;
-       Serial.println("MANUAL");
-  
-  }
-  // Dead
-  else if (duration5 == 0) {
-      control_mode = Control_Mode::dead;
-       Serial.println("DEAD");
-  
-  }
-
 }
 
 void Get_RC_Values() {
@@ -301,8 +279,10 @@ void Get_Pixy_Data() {
 
 void Calculate_Acceleration_Vector() {
   // initially set to pixy x, y
-  acceleration_vector[0] = (target_x - center_x) * PIXY_KP_X;
-  acceleration_vector[1] = (target_y - center_y) * PIXY_KP_Y;
+  Serial.print("target_x");
+  Serial.println(target_x);
+  acceleration_vector[0] = (target_x - CENTER_X) * PIXY_KP_X;
+  acceleration_vector[1] = (target_y - CENTER_Y) * PIXY_KP_Y;
 
   // if too deep, pitch up | if too shallow, pitch down
   if (pressure > target_pressure) acceleration_vector[1] += (pressure - target_pressure) * LPS_KP;
@@ -310,40 +290,17 @@ void Calculate_Acceleration_Vector() {
 }
 
 void Update_Servos() {
-  // calculate new servos
-  long x_servo_power = map(0, 315, MAX_NEG, MAX_POS, acceleration_vector[0]);
-  long y_servo_power = map(0, 207, MAX_NEG, MAX_POS, acceleration_vector[1]);
-
   // limit based on gyro
-  if (x_servo_power > NEUTRAL && gyro_x > 10)
-    x_servo_power -= (x_servo_power - NEUTRAL) * MPU_KD_X + NEUTRAL;
-  else if (y_servo_power > NEUTRAL && gyro_x > 10)
-    y_servo_power -= (y_servo_power - NEUTRAL) * MPU_KD_Y + NEUTRAL;
+  // if (x_servo_power > NEUTRAL && gyro_x > 10)
+  //   x_servo_power -= (x_servo_power - NEUTRAL) * MPU_KD_X + NEUTRAL;
+  // else if (y_servo_power > NEUTRAL && gyro_x > 10)
+  //   y_servo_power -= (y_servo_power - NEUTRAL) * MPU_KD_Y + NEUTRAL;
   
   // Write to the servos
-  
-  // go left
-  if (x_servo_power > NEUTRAL) {
-    esc1.write(80);
-    esc3.write(100);
-  } else if (x_servo_power < NEUTRAL) {
-    esc2.write(100);
-    esc4.write(80);
-  } else {
-    esc2.write(MAX_POS);
-    esc4.write(MAX_POS);
-  }
-
-  if (y_servo_power > NEUTRAL) {
-    esc2.write(100);
-    esc4.write(100);
-  } else if (y_servo_power < NEUTRAL) {
-    esc2.write(80);
-    esc4.write(80);
-  } else {
-    esc2.write(NEUTRAL);
-    esc4.write(NEUTRAL);
-  }
+  esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 40);
+  esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 40);
+  esc2.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
+  esc4.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
 }
 
 // Blink every second
