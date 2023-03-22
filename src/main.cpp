@@ -26,8 +26,8 @@ const float MPU_KD_Y = 1.f;
 Pixy2 pixy;
 const uint16_t center_x = 157;
 const uint16_t center_y = 103;
-uint16_t target_x = 0;
-uint16_t target_y = 0;
+uint16_t target_x;
+uint16_t target_y;
 const float PIXY_KP_X = 1.f;
 const float PIXY_KP_Y = 1.f;
 
