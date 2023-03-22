@@ -321,10 +321,29 @@ void Update_Servos() {
     y_servo_power -= (y_servo_power - NEUTRAL) * MPU_KD_Y + NEUTRAL;
   
   // Write to the servos
-  esc1.write(NEUTRAL);
-  esc2.write(NEUTRAL);
-  esc3.write(NEUTRAL);
-  esc4.write(NEUTRAL);
+  
+  // go left
+  if (x_servo_power > NEUTRAL) {
+    esc1.write(80);
+    esc3.write(100);
+  } else if (x_servo_power < NEUTRAL) {
+    esc2.write(100);
+    esc4.write(80);
+  } else {
+    esc2.write(MAX_POS);
+    esc4.write(MAX_POS);
+  }
+
+  if (y_servo_power > NEUTRAL) {
+    esc2.write(100);
+    esc4.write(100);
+  } else if (y_servo_power < NEUTRAL) {
+    esc2.write(80);
+    esc4.write(80);
+  } else {
+    esc2.write(NEUTRAL);
+    esc4.write(NEUTRAL);
+  }
 }
 
 // Blink every second
