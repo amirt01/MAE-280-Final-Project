@@ -20,14 +20,12 @@ Adafruit_MPU6050 mpu;
 float gyro_x;
 float gyro_y;
 float gyro_z;
-const float MPU_KD_X = 0.1f;
-const float MPU_KD_Y = 0.1f;
+const float MPU_KD_X = 0.f;
+const float MPU_KD_Y = 0.f;
 
 Pixy2 pixy;
 const int16_t CENTER_X = 157;
 const int16_t CENTER_Y = 103;
-const int16_t PIXY_WIDTH = 315;
-const int16_t PIXY_HEIGHT = 207;
 int16_t target_x;
 int16_t target_y;
 const float PIXY_KP_X = 1.f;
@@ -287,15 +285,15 @@ void Calculate_Acceleration_Vector() {
   // if too deep, pitch up | if too shallow, pitch down
   if (pressure > target_pressure) acceleration_vector[1] += (pressure - target_pressure) * LPS_KP;
   else if (pressure < target_pressure) acceleration_vector[1] += (target_pressure - pressure) * LPS_KP;
+
+  // limit based on gyro
+  if (acceleration_vector[0] > NEUTRAL && gyro_x > 10)
+    acceleration_vector[0] -= (acceleration_vector[0] - NEUTRAL) * MPU_KD_X;
+  else if (acceleration_vector[1] > NEUTRAL && gyro_x > 10)
+    acceleration_vector[1] -= (acceleration_vector[1] - NEUTRAL) * MPU_KD_Y;
 }
 
 void Update_Servos() {
-  // limit based on gyro
-  // if (x_servo_power > NEUTRAL && gyro_x > 10)
-  //   x_servo_power -= (x_servo_power - NEUTRAL) * MPU_KD_X + NEUTRAL;
-  // else if (y_servo_power > NEUTRAL && gyro_x > 10)
-  //   y_servo_power -= (y_servo_power - NEUTRAL) * MPU_KD_Y + NEUTRAL;
-  
   // Write to the servos
   esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 40);
   esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 40);
