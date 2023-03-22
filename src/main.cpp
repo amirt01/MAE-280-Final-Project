@@ -60,7 +60,6 @@ unsigned long duration3;
 unsigned long duration4;
 unsigned long duration5;
 
-enum Control_Mode { manual, autonomous } control_mode;
 
 // ================================================================
 // ===                     Motor VARIABLES                      ===
@@ -93,7 +92,7 @@ constexpr unsigned int LED_INCREMENT = 300;
 
 float acceleration_vector[2] = {0, 0};
 
-enum class State { StandBye, Running, Resting } state;
+enum Control_Mode { manual, autonomous } control_mode;
 
 // ================================================================
 // ===                  FUNCTION DECLERATIONS                   ===
@@ -105,11 +104,13 @@ void Servo_Setup();
 void Operations_Setup();
 void Channel_Setup();
 
+void Manual_Control();
+
 void Get_LPS_Data();
 void Get_MPU_Data();
 void Get_Pixy_Data();
 
-void Calclate_Acceleration_Vector();
+void Calculate_Acceleration_Vector();
 void Update_Servos();
 
 void Update_Blink();
@@ -140,13 +141,21 @@ void setup() {
 // ================================================================
 
 void loop() {
-  Get_LPS_Data();
-  Get_MPU_Data();
-  Get_Pixy_Data();
-  
-  Calculate_Acceleration_Vector();
-  Update_Servos();
+  switch (control_mode)
+  {
+  case Control_Mode::manual:
+    Manual_Control();
+    break;
+  case Control_Mode::autonomous:
+    Get_LPS_Data();
+    Get_MPU_Data();
+    Get_Pixy_Data();
 
+    Calculate_Acceleration_Vector();
+    Update_Servos();
+    break;
+  }
+  
   Update_Blink();
 }
 
@@ -195,7 +204,7 @@ void Operations_Setup() {
   digitalWrite(LED_PIN, blinkState);
   toggle_time = millis() + 1000;
 
-  state = State::StandBye;
+  control_mode = Control_Mode::manual;
 
   Serial.println("Operations Initialized");
 }
@@ -208,39 +217,65 @@ void Channel_Setup(){
   pinMode(CH5, INPUT);
 }
 
+void Manual_Control() {
+  duration1 = pulseIn(CH1, HIGH);
+  duration2 = pulseIn(CH2, HIGH);
+  duration3 = pulseIn(CH3, HIGH);
+  //duration4 = pulseIn(CH4, HIGH, 3000);
+
+  //Serial.println(duration1);
+  //Serial.println(duration2);
+  //Serial.println(duration3);
+  //Serial.println(duration4);
+  //Serial.println(duration5);
+  //Serial.println("");
+
+  // Pitch
+  //  if (duration2 >= 1350 && duration2 <= 1600) {
+  //    ESC1.write(90);
+  //    ESC2.write(90);
+  //    ESC3.write(90);
+  //    ESC4.write(90);
+  //  }
+  //
+  //  else {
+  //    CH2_sig = map(duration2, 1000, 2000, 0, 180);
+  //    ESC1.write(90);
+  //    ESC2.write(CH2_sig);
+  //    ESC3.write(CH2_sig);
+  //    ESC4.write(90);
+  //  }
+
+  // Yaw
+  //  CH1_sig = map(duration1,1000,2000,0,180);
+  //  ESC3.write(CH2_sig);
+  //  ESC4.write(180 - CH2_sig);
+
+  // Thrust
+  CH3_sig = map(duration3, 1000, 2000, 0, 180);
+  esc1.write(CH3_sig);
+  esc4.write(CH3_sig);
+
+  CH2_sig = map(duration2, 1000, 2000, 0, 180);
+  esc2.write(CH2_sig);
+  esc3.write(CH2_sig);
+}
 
 void Get_LPS_Data() {
   pressure = lps.readPressure();
-  // lps_temp = lps.readTemperature();
 
   Serial.print("Pressure: ");
   Serial.print(pressure);
   Serial.println(" hPa");
-
-  /* The temperature that is measured here is usually the temperature
-  in the sensor which is used for calibration purposes.*/
-  // Serial.print("Temperature: ");
-  // Serial.print(lps_temp);
-  // Serial.println(" C");
 }
 
 void Get_MPU_Data() {
-  // TODO: We most likely only need data from the gyroscope so we can
-  //       par this down a lot.
-  /* Get new sensor events with the readings */
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
+  sensors_event_t g;
+  mpu.getGyroSensor()->getEvent(&g);
 
   gyro_x = g.gyro.x;
   gyro_y = g.gyro.x;
   gyro_z = g.gyro.x;
-
-  // accel_x = a.acceleration.x;
-  // accel_y = a.acceleration.x;
-  // accel_z = a.acceleration.x;  
-  // mpu_temp = temp.temperature;
-
-  // /* Print out the values */
 
   Serial.print("Rotation X: ");
   Serial.print(gyro_x);
@@ -249,26 +284,11 @@ void Get_MPU_Data() {
   Serial.print(", Z: ");
   Serial.print(gyro_z);
   Serial.println(" rad/s");
-
-  // Serial.print("Acceleration X: ");
-  // Serial.print(accel_x);
-  // Serial.print(", Y: ");
-  // Serial.print(accel_y);
-  // Serial.print(", Z: ");
-  // Serial.print(accel_z);
-  // Serial.println(" m/s^2");
-  /* The temperature that is measured here is usually the temperature
-  in the sensor which is used for calibration purposes.*/
-  // Serial.print("Temperature: ");
-  // Serial.print(mpu_temp);
-  // Serial.println(" degC");
 }
 
 void Get_Pixy_Data() {
-  // grab blocks!
   pixy.ccc.getBlocks();
 
-  // If there are detect blocks, print them!
   if (pixy.ccc.numBlocks) {
     target_x = pixy.ccc.blocks[0].m_x;
     target_y = pixy.ccc.blocks[0].m_y;
