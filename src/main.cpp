@@ -5,7 +5,22 @@
 #include <Adafruit_LPS35HW.h>
 #include <Adafruit_MPU6050.h>
 #include <Adafruit_Sensor.h>
+#include <SPI.h>
+
 #include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+// ================================================================
+// ===                      OLED VARIABLES                      ===
+// ================================================================
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // ================================================================
 // ===                     Sensor VARIABLES                     ===
@@ -85,6 +100,7 @@ float acceleration_vector[2];
 // ===                  FUNCTION DECLERATIONS                   ===
 // ================================================================
 
+void Init_Display();
 void MPU_Setup();
 void LPS_Setup();
 void Servo_Setup();
@@ -110,6 +126,16 @@ void Update_Blink();
 void setup() {
   Serial.begin(115200);
   while (!Serial) delay(10);  // will pause until serial console opens
+  
+  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 10);
   
   MPU_Setup();
   LPS_Setup();
@@ -158,6 +184,9 @@ void loop() {
   }
   
   Update_Blink();
+  
+  display.clearDisplay();
+  display.setCursor(0, 10);
 }
 
 // ================================================================
@@ -167,6 +196,7 @@ void loop() {
 void MPU_Setup() {
   if (!mpu.begin()) {
     Serial.println("Failed to find MPU6050 chip");
+    display.println("Failed to find MPU6050 chip");
     while (true) delay(10);
   }
   
@@ -175,15 +205,18 @@ void MPU_Setup() {
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
   mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
   Serial.println("MPU Initialized");
+  display.println("MPU Initialized");
 }
 
 void LPS_Setup() {
   if (!lps.begin_I2C()) {
     Serial.println("Failed to find LPS33HW chip");
+    display.println("Failed to find LPS33HW chip");
     while (true) delay(10);
   }
 
   Serial.println("Found LPS33HW chip");
+  display.println("Found LPS33HW chip");
 }
 
 void Servo_Setup() {
@@ -198,6 +231,7 @@ void Servo_Setup() {
   esc4.write(NEUTRAL);
 
   Serial.println("Servos Initialized");
+  display.println("Servos Initialized");
 }
 
 void Operations_Setup() {
@@ -206,14 +240,17 @@ void Operations_Setup() {
   toggle_time = millis() + 1000;
 
   Serial.println("Operations Initialized");
+  display.println("Operations Initialized");
 }
 
 void Channel_Setup(){
   pinMode(CH1, INPUT);
   pinMode(CH2, INPUT);
   pinMode(CH3, INPUT);
-  //pinMode(CH4, INPUT);
   pinMode(CH5, INPUT);
+
+  Serial.println("Channels Initialized");
+  display.println("Channels Initialized");
 }
 
 void Get_RC_Values() {
@@ -232,14 +269,27 @@ void Update_Servo_Manual() {
   CH2_sig = map(duration2, 1000, 2000, 0, 180);
   esc2.write(CH2_sig);
   esc4.write(CH2_sig);
+
+  Serial.print("(");
+  Serial.print(CH3_sig);
+  Serial.print(", ");
+  Serial.print(CH2_sig);
+  Serial.println(")");
+  
+  display.print("Servo: (");
+  display.print(CH3_sig);
+  display.print(", ");
+  display.print(CH2_sig);
+  display.println(")");
 }
 
 void Get_LPS_Data() {
   pressure = lps.readPressure();
 
   Serial.print("Pressure: ");
-  Serial.print(pressure);
-  Serial.println(" hPa");
+  Serial.println(pressure);
+  display.print("Pressure: ");
+  display.println(pressure);
 }
 
 void Get_MPU_Data() {
@@ -250,13 +300,20 @@ void Get_MPU_Data() {
   gyro_y = g.gyro.x;
   gyro_z = g.gyro.x;
 
-  Serial.print("Rotation X: ");
+  Serial.print("Rotation: ()");
   Serial.print(gyro_x);
-  Serial.print(", Y: ");
+  Serial.print(", ");
   Serial.print(gyro_y);
-  Serial.print(", Z: ");
+  Serial.print(", ");
   Serial.print(gyro_z);
-  Serial.println(" rad/s");
+  Serial.println(") rad/s");
+  display.print("Rotation: ()");
+  display.print(gyro_x);
+  display.print(", ");
+  display.print(gyro_y);
+  display.print(", ");
+  display.print(gyro_z);
+  display.println(") rad/s");
 }
 
 void Get_Pixy_Data() {
@@ -267,15 +324,20 @@ void Get_Pixy_Data() {
     target_y = pixy.ccc.blocks[0].m_y;
   }
 
+  Serial.print("Target: ()");
   Serial.print(target_x);
-  Serial.print(" | ");
-  Serial.println(target_y);
+  Serial.print(", ");
+  Serial.print(target_y);
+  Serial.println(")");
+  display.print("Target: ()");
+  display.print(target_x);
+  display.print(", ");
+  display.print(target_y);
+  display.println(")");
 }
 
 void Calculate_Acceleration_Vector() {
   // initially set to pixy x, y
-  Serial.print("target_x");
-  Serial.println(target_x);
   acceleration_vector[0] = (target_x - CENTER_X) * PIXY_KP_X;
   acceleration_vector[1] = (target_y - CENTER_Y) * PIXY_KP_Y;
 
@@ -288,14 +350,25 @@ void Calculate_Acceleration_Vector() {
     acceleration_vector[0] -= (acceleration_vector[0] - NEUTRAL) * MPU_KD_X;
   else if (acceleration_vector[1] > NEUTRAL && gyro_x > 10)
     acceleration_vector[1] -= (acceleration_vector[1] - NEUTRAL) * MPU_KD_Y;
+
+  Serial.print("Accel Vect: (");
+  Serial.print(acceleration_vector[0]);
+  Serial.print(", ");
+  Serial.print(acceleration_vector[1]);
+  Serial.println(")");
+  display.print("Accel Vect: (");
+  display.print(acceleration_vector[0]);
+  display.print(", ");
+  display.print(acceleration_vector[1]);
+  display.println(")");
 }
 
 void Update_Servos() {
   // Write to the servos
-  esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 180, 0) + 45);
-  esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, 0, 180) + 45);
-  esc2.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
-  esc4.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, 180, 0));
+  esc1.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, MAX_POS, MAX_NEG) + MAX_POS / 4);
+  esc3.write(map(acceleration_vector[0], -CENTER_X, CENTER_X, MAX_NEG, MAX_POS) + MAX_POS / 4);
+  esc2.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, MAX_POS, MAX_NEG));
+  esc4.write(map(acceleration_vector[1], -CENTER_Y, CENTER_Y, MAX_POS, MAX_NEG));
 }
 
 // Blink every second
