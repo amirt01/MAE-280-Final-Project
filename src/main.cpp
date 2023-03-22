@@ -15,7 +15,6 @@ Adafruit_LPS35HW lps = Adafruit_LPS35HW();
 const float target_pressure = 62.4 * 2;  // 62.4 lbs/ft3 * 2 ft deep
 float pressure = 0.f;
 const float lps_Kp = 0.f;
-// float lps_temp = 0;
 
 Adafruit_MPU6050 mpu;
 float gyro_x = 0.f;
@@ -23,10 +22,6 @@ float gyro_y = 0.f;
 float gyro_z = 0.f;
 float mpu_Kd_x = 1.f;
 float mpu_Kd_y = 1.f;
-// float mpu_temp = 0;
-// float accel_x = 0;
-// float accel_y = 0;
-// float accel_z = 0;
 
 Pixy2 pixy;
 const uint16_t center_x = 157;
@@ -35,14 +30,11 @@ uint16_t target_x = 0;
 uint16_t target_y = 0;
 float pixy_Kp_x = 1.f;
 float pixy_Kp_y = 1.f;
-// uint16_t target_width = 0;
-// uint16_t target_height = 0;
 
 // ================================================================
 // ===                    RECIEVER VARIABLES                    ===
 // ================================================================
 
-// channel variables for receiver readings
 int CH1_sig;
 int CH2_sig;
 int CH3_sig;
